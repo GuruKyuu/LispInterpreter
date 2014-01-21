@@ -1,0 +1,239 @@
+options
+{
+	MULTI = true;
+	VISITOR = true;
+}
+
+PARSER_BEGIN(Parser)
+
+
+import java.util.ArrayList;
+import java.util.List;
+import java.io.*;
+
+public class Parser {}
+
+PARSER_END(Parser)
+
+SKIP:
+{
+	" "
+	| "\t"
+	| "\n"
+	| "\r"
+	| < "%" (~["\n","\r"])* ("\n"|"\r") >
+}
+
+TOKEN:
+{
+	< NIL : ["N","n"] ["I","i"] ["L","l"] >
+}
+
+TOKEN:
+{
+	< LPAR : "(" >
+	| < RPAR : ")" >
+	| < TICK : "'" >
+	| < INTEGER : (["0"-"9"])+ | "-" (["0"-"9"])+ >
+	| < LAMBDA : "\\" | "lambda" >
+	| < LET : "let">
+	| < LETREC : "letrec" >
+	| < ADD_OP : "+" >
+	| < SUB_OP : "-" >
+	| < CAR : ["C", "c"] ["A", "a"] ["R", "r"] >
+	| < CDR : ["C", "c"] ["D", "d"] ["R", "r"] >
+	| < CONS : ["C", "c"] ["O", "o"] ["N", "n"] ["S", "s"] >
+}
+
+TOKEN:
+{
+	< IDENTIFIER: <LETTER> (<LETTER> | <DIGIT>)* >
+	| < #LETTER: ["_", "A"-"Z", "a"-"z"] >
+	| < #DIGIT: ["0"-"9"] >
+}
+
+TOKEN:
+{
+	< ERROR : ~[] >
+}
+
+ASTLispNode prog() #LispNode:
+{
+	String s;
+}
+{
+	(
+		LOOKAHEAD(2) s = list() { System.out.println(s); }
+		| s = atom() { System.out.println(s); }
+	)
+	{
+		return jjtThis;
+	}
+  
+}
+
+String list() #List:
+{
+	String s;
+	String ret = "";
+}
+{
+	{
+		ret += "(";
+	}
+	<LPAR>
+	(
+		LOOKAHEAD(2) s =  list() { ret += s; }
+		| s = atom() { ret += s + " "; }
+	)*
+	<RPAR>
+	{
+		ret += ") ";
+		jjtThis.name = ret;
+		return ret;
+	}
+}
+
+String atom() #Atom:
+{ Token n; String l; }
+{
+	  n = <NIL>     { jjtThis.name = n.image; return n.image; }
+	| n = <INTEGER> { jjtThis.name = n.image; jjtThis.type = "int"; jjtThis.value = n.getValue(); return n.image; }
+	| n = <IDENTIFIER> { jjtThis.name = n.image; jjtThis.type = "ident"; return n.image; }
+	| n = <LAMBDA>  { jjtThis.name = n.image; l = lambdaExpr(); return "lambda" + l; }  
+	| n = <ADD_OP>  { jjtThis.name = n.image; jjtThis.type = "operator"; l = addExpr(); return n.image + l; }
+	| n = <SUB_OP>  { jjtThis.name = n.image; jjtThis.type = "operator"; l = subExpr(); return n.image + l; }
+	| n = <CAR> { jjtThis.name = n.image; l = car(); return n.image + l; }
+	| n = <CDR> { jjtThis.name = n.image; l = cdr(); return n.image + l; }
+	| n = <CONS> { jjtThis.name = n.image; l = cons(); return n.image + l; }
+	| n = <LET> { jjtThis.name = n.image; jjtThis.type = "let"; l = let(); return l; }
+	| n = <LETREC> { jjtThis.name = n.image; jjtThis.type = "let"; l = let(); return n.image + l; }	
+}
+
+String car() #void:
+{ String s; String ret = " "; }
+{
+	<TICK>
+
+	(
+		s = list() { ret += s; }
+		| s = atom() { ret += s; }
+	)
+
+	{
+		return ret;
+	}
+}
+
+String cdr() #void:
+{ String s; String ret = " "; }
+{
+	<TICK>
+
+	(
+		s = list() { ret += s; }
+		| s = atom() { ret += s; }
+	)
+
+	{
+		return ret;
+	}
+}
+
+String cons() #void:
+{ String s; String t; String ret = " "; }
+{
+	<TICK>
+
+	(
+		s = list() { ret += s; }
+		| s = atom() { ret += s; }
+	)
+	
+	<TICK>	
+	
+	(
+		t = list() { ret += t; }
+		| t = atom() { ret +=" "+ t; }
+	)
+
+	{
+		return ret;
+	}
+}
+
+String addExpr() #AddExpr:
+{ String s; String t; String ret = ""; }
+{
+	(
+		s = list() { ret += s; }
+		| s = atom() { ret +=" "+ s; }
+	)
+
+	(
+		t = list() { ret += t; }
+		| t = atom() { ret +=" "+ t; }
+	)
+
+	{
+		return ret;
+	}    
+}
+
+String subExpr() #SubExpr:
+{ String s; String t; String ret = ""; }
+{
+	(
+		s =  list() { ret += s; }
+		| s = atom() { ret += " " + s; }
+	)
+
+	(
+		t = list() { ret += t; }
+		| t = atom() { ret += " " + t; }
+	)
+
+	{
+		return ret;
+	}    
+}
+
+String let() #LetExpr:
+{ String a, b, c, aret = "", bret = ""; }
+{
+	<LPAR>
+	(
+	<LPAR>
+	a = atom()
+	(
+		LOOKAHEAD(2) b = list()
+		| b = atom()
+	)
+
+	<RPAR>
+	{ aret += a + " "; bret += b + " "; }
+	)+
+	<RPAR>
+
+	(
+		LOOKAHEAD(2) c = list()
+		| c = atom()
+	)  
+
+ 	{
+		return "(lambda (" + aret + ") " + c + ") " + bret;
+	}
+}
+
+String lambdaExpr() #LambdaExpr:
+{ String s, t; String ret = ""; }
+{
+	s = list()
+	(
+		LOOKAHEAD(2) t = list()
+		| t = atom()
+	)
+	{
+		return s + t;
+	}
+}

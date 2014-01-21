@@ -1,0 +1,46 @@
+Simple queries:
+
+(+ 5 46)
+(- 40535.308 3059.382)
+
+Simple query using let:
+
+(let ((x 3)) (+ x 5.239))
+
+Query using let, multiple binding instances:
+
+(let ((x 5.390) (y 3) (z 2395.55)) (- x (+ y z)))
+
+Query using let, lambda:
+
+(let ((x 53.66) (y (\ (a) a))) (y x))
+
+Query using let, lambda (multiple parameters):
+
+(let ((x 53.66) (y (\ (a b c) (+ a (- b c))))) (y x 53 645.7))
+
+Query using nested lets, lambda (multiple parameters):
+
+(let ((x (\ (a b c) (+ b c))) (y 56.7))  (let ((z 43) (q 259.3)) (x y z q)))
+
+Simple queries using car, cdr, cons:
+
+(car '(a b c))
+(cdr '(a 20 35.5))
+(cons '(a b) '(g t))
+
+More complex queries using car, cdr, cons:
+
+(car (cdr '(a b c)))
+(cons '(1 2) (cdr '(1 2 3)))
+(cdr (cons '(1 2 3) '(4 5 6)))
+
+Queries using let (multiple binding instances), car, cdr, cons:
+
+(let ((x 4) (y 3.4) (z 2)) (cdr '(x y z)))
+(let ((x 4) (y 3.4) (z 2)) (car '(x y z)))
+(let ((x 4) (y 3.4) (z 2)) (cons '(x y z) '(y z)))
+
+
+
+
